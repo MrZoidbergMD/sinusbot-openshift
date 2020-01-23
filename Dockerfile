@@ -25,11 +25,11 @@ WORKDIR $SINUS_DIR
 
 COPY *.sh .
 RUN useradd -u 1001 -g 0 -d "$SINUS_DIR" sinusbot && \
-    chown -R sinusbot:0 "$SINUS_DIR" && \
-    chmod g+rwx ./ data/ scripts/ && \
+    chown -R sinusbot:0 . && \
+    chmod g+rwx . data/ scripts/ && \
     chmod 755 entrypoint.sh install.sh
 
-USER 1001
+USER sinusbot
 
 # Download/Install SinusBot
 RUN bash install.sh sinusbot && \
