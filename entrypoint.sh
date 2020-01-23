@@ -1,4 +1,5 @@
 #!/bin/bash
+# Entrypoint to run in OpenShift
 # Based on https://github.com/SinusBot/docker/blob/master/discord/entrypoint.sh
 
 echo "Copy default scripts"
