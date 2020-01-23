@@ -10,7 +10,7 @@ if [ -d "default_scripts" ]; then
 fi
 
 echo "Copy config"
-if [ ! -f "config/config.ini" ]; then
+if [ -f "config/config.ini" ]; then
   cp config/config.ini config.ini
   echo "Copied config/config.ini"
 else
