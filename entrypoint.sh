@@ -13,12 +13,9 @@ if [ ! -f "config/config.ini" ]; then
   cp config/config.ini config.ini
   echo "Copied config/config.ini"
 else
-  echo "No config.inif found, using default"
+  echo "No config.ini found, using config.ini.configured"
   cp config.ini.configured config.ini
 fi
-
-#echo "Updating youtube-dl..."
-#youtube-dl --restrict-filename -U
 
 PID=0
 
