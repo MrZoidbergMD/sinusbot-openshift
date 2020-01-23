@@ -1,0 +1,210 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: sinusbot-openshift-template
+  annotations:
+    openshift.io/display-name: "sinusbot" 
+    iconClass: "fa fa-phone-volume"
+    description: "musicbot for teamspeak and discord"
+    openshift.io/long-description: "template to build and deploy the sinusbot for teamspeak based on the sinusbot docker image"
+    tags: "sinusbot,teamspeak,bot,music"
+parameters:
+- name: NAME
+  description: Name of this app
+  required: true
+  value: sinusbot
+- name: NAMESPACE
+  description: namespace of the project
+  value: sinusbot-openshift
+  required: true
+- name: GITHUB_WEBHOOK_SECRET
+  description: A secret string used to configure the GitHub webhook
+  generate: expression 
+  from: "[a-zA-Z0-9]{40}" 
+- name: ADMIN_PASSWORD
+  description: A password used for the admin user
+  generate: expression 
+  from: "[a-zA-Z0-9]{20}" 
+- name: WEBPANEL_DOMAIN
+  description: Domain for the webpanel route
+  required: true
+- name: IMAGEREGISTRY
+  description: hostname (and port) of the image registry
+  required: true
+  value: image-registry.openshift-image-registry.svc:5000
+message: "The GitHub webhook secret is ${GITHUB_WEBHOOK_SECRET} and the admin password is ${ADMIN_PASSWORD}"
+labels:
+  app: ${NAME}
+  template: sinusbot-openshift-template
+objects:
+- apiVersion: v1
+  stringData:
+    WebHookSecretKey: ${GITHUB_WEBHOOK_SECRET}
+  kind: Secret
+  metadata:
+    name: ${NAME}-github-build
+  type: Opaque
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: ${NAME}-openshift
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: ${NAME}-build
+  spec:
+    failedBuildsHistoryLimit: 5
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}-openshift:latest
+    runPolicy: Serial
+    source:
+      git:
+        uri: https://github.com/MrZoidbergMD/sinusbot-openshift.git
+      type: Git
+    strategy:
+      dockerStrategy: {}
+      type: Docker
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - type: ConfigChange
+    - github:
+        secretReference:
+          name: ${NAME}-github-build
+      type: GitHub
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${NAME}-svc
+  spec:
+    ports:
+    - port: 8087
+      protocol: TCP
+      targetPort: 8087
+    selector:
+      app: ${NAME}
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: ${NAME}-web
+  spec:
+    host: ${WEBPANEL_DOMAIN}
+    port:
+      targetPort: 8087
+    subdomain: ""
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge
+    to:
+      kind: Service
+      name: ${NAME}-svc
+- apiVersion: v1
+  data:
+    config.ini: |2
+
+      ListenPort = 8087
+      ListenHost = "0.0.0.0"
+      TS3Path = "/opt/sinusbot/TeamSpeak3-Client-linux_amd64/ts3client_linux_amd64"
+      YoutubeDLPath = "/usr/local/bin/youtube-dl"
+
+      [TTS]
+      Enabled = true
+
+      [[TTS.Modules]]
+      Locale = "en-US"
+      Filename = "voice_lstm_en-US.zvoice"
+      PipelineFile = "voice_lstm_en-US/sfg/pipeline"
+      Prefix = "voice_lstm_en-US/sfg/"
+      Instances = 0
+
+      [[TTS.Modules]]
+      Locale = "de-DE"
+      Filename = "voice_lstm_de-DE.zvoice"
+      PipelineFile = "voice_lstm_de-DE/nfh/pipeline"
+      Prefix = "voice_lstm_de-DE/nfh/"
+      Instances = 2
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}-config
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ${NAME}-data
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: 1Gi
+    volumeMode: Filesystem
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ${NAME}-scripts
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: 1Gi
+    volumeMode: Filesystem
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: ${NAME}
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: "true"
+      image.openshift.io/triggers: >-
+        [{"from":{"kind":"ImageStreamTag","name":"${NAME}-openshift:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"sinusbot\")].image"}]
+  spec:
+    selector:
+      matchLabels:
+        app: ${NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: ${NAME}
+      spec:
+        containers:
+        - env:
+          - name: OVERRIDE_PASSWORD
+            value: ${ADMIN_PASSWORD}
+          image: ${IMAGEREGISTRY}/${NAMESPACE}/${NAME}-openshift:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/v1/botId
+              port: 8087
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 30
+          name: sinusbot
+          ports:
+          - containerPort: 8087
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /opt/sinusbot/data
+            name: sinusbot-data
+          - mountPath: /opt/sinusbot/scripts
+            name: sinusbot-scripts
+          - mountPath: /opt/sinusbot/config
+            name: sinusbot-config
+        volumes:
+        - name: sinusbot-data
+          persistentVolumeClaim:
+            claimName: ${NAME}-data
+        - name: sinusbot-scripts
+          persistentVolumeClaim:
+            claimName: ${NAME}-scripts
+        - configMap:
+            defaultMode: 420
+            name: ${NAME}-config
+          name: sinusbot-config
+
+
