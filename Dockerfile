@@ -11,7 +11,6 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates \
     bzip2 unzip curl python procps libpci3 libxslt1.1 libxkbcommon0 \
     x11vnc xvfb libxcursor1 libnss3 libegl1-mesa libasound2 libglib2.0-0 libxcomposite-dev less jq && \
-    apt-get autoremove -y && \
     apt-get clean -y && \
     rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists/*
 
@@ -19,6 +18,8 @@ RUN apt-get update && \
 RUN	curl -s -L -o /usr/local/bin/youtube-dl https://yt-dl.org/downloads/latest/youtube-dl && \
 	chmod 755 /usr/local/bin/youtube-dl && \
 	echo "Successfully installed youtube-dl"
+
+VOLUME ["$SINUS_DIR/data", "$SINUS_DIR/scripts"]
 
 WORKDIR $SINUS_DIR
 
