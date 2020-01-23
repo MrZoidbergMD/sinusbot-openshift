@@ -8,7 +8,8 @@ ENV SINUS_DIR="/opt/sinusbot"
 RUN useradd -u 1001 -g 0 -d "$SINUS_DIR" sinusbot
 
 # Assign sinusbot to
-RUN chown -R sinusbot:0 "$SINUS_DIR"
+RUN chown -R sinusbot:0 "$SINUS_DIR" && \
+    chmod g+rw . default_scripts data scripts
 
 #  new entrypoint
 ADD entrypoint.sh .

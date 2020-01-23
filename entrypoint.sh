@@ -14,7 +14,7 @@ if [ ! -f "data/config.ini" ]; then
   echo "Copiedconfig.ini.configured"
 fi
 
-ln -fs data/config.ini config.ini
+#ln -fs data/config.ini config.ini
 
 #echo "Updating youtube-dl..."
 #youtube-dl --restrict-filename -U
