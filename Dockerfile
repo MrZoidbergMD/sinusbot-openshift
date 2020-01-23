@@ -29,8 +29,6 @@ RUN useradd -u 1001 -g 0 -d "$SINUS_DIR" sinusbot && \
     chmod g+rwx . data/ scripts/ && \
     chmod 755 entrypoint.sh install.sh
 
-USER sinusbot
-
 # Download/Install SinusBot
 RUN bash install.sh sinusbot && \
     chmod g+rwx scripts/
