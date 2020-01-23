@@ -9,12 +9,13 @@ if [ -d "default_scripts" ]; then
 fi
 
 echo "Copy config"
-if [ ! -f "data/config.ini" ]; then
-  cp config.ini.configured data/config.ini
-  echo "Copiedconfig.ini.configured"
+if [ ! -f "config/config.ini" ]; then
+  cp config/config.ini config.ini
+  echo "Copied config/config.ini"
+else
+  echo "No config.inif found, using default"
+  cp config.ini.configured config.ini
 fi
-
-#ln -fs data/config.ini config.ini
 
 #echo "Updating youtube-dl..."
 #youtube-dl --restrict-filename -U
