@@ -26,14 +26,14 @@ WORKDIR $SINUS_DIR
 COPY *.sh .
 RUN useradd -u 1001 -g 0 -d "$SINUS_DIR" sinusbot && \
     chown -R sinusbot:0 "$SINUS_DIR" && \
-    chmod g+rw "$SINUS_DIR" && \
+    chmod g+rwx ./ data/ scripts/ && \
     chmod 755 entrypoint.sh install.sh
 
 USER 1001
 
 # Download/Install SinusBot
 RUN bash install.sh sinusbot && \
-    chmod g+rw ./ default_scripts/ data/ scripts/
+    chmod g+rwx scripts/
 
 # Download/Install Text-to-Speech
 RUN bash install.sh text-to-speech
